@@ -8,6 +8,7 @@ import { TasksRepository } from './tasks.repository';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from './task.entity';
 import { User } from 'src/auth/user.entity';
+import { GetUser } from 'src/auth/get-user.decorator';
 
 @Injectable()
 export class TasksService {
@@ -16,8 +17,8 @@ export class TasksService {
 		private tasksRepository: TasksRepository
 	) {}
 
-	async getTaskById(taskId: string): Promise<Task> {
-		const found = await this.tasksRepository.findOne({ id: taskId });
+	async getTaskById(taskId: string, user: User): Promise<Task> {
+		const found = await this.tasksRepository.findOne({ id: taskId, user });
 		if (!found)
 			throw new NotFoundException(`Task with ID ${taskId} not found.`);
 		return found;
@@ -35,23 +36,26 @@ export class TasksService {
 		return await this.tasksRepository.save(task);
 	}
 
-	async getTasks(taskFilter?: getTasksFilterDto): Promise<Task[]> {
-		const query = this.tasksRepository.createQueryBuilder('task');
+	async getTasks(user: User, taskFilter?: getTasksFilterDto): Promise<Task[]> {
+		const query = this.tasksRepository
+			.createQueryBuilder('task')
+			.where({ user });
 		const { status, search } = taskFilter;
+
 		if (status) {
 			query.andWhere('task.status = :status', { status });
 		}
 		if (search) {
 			query.andWhere(
-				'LOWER(task.description) LIKE :search OR LOWER(task.title) like :search',
+				'(LOWER(task.description) LIKE :search OR LOWER(task.title) like :search)',
 				{ search: `%${search.toLowerCase()}%` }
 			);
 		}
 		return await query.getMany();
 	}
 
-	async deleteTaskById(taskId: string): Promise<Task> {
-		const task = await this.tasksRepository.findOne({ id: taskId });
+	async deleteTaskById(taskId: string, user: User): Promise<Task> {
+		const task = await this.tasksRepository.findOne({ id: taskId, user });
 		if (!task) {
 			throw new NotFoundException(`Task with ID ${taskId} not found.`);
 		}
@@ -59,8 +63,12 @@ export class TasksService {
 		return task;
 	}
 
-	async editTask(id: string, editTask: EditTaskStatusDto): Promise<Task> {
-		const task = await this.tasksRepository.findOne({ id });
+	async editTask(
+		id: string,
+		editTask: EditTaskStatusDto,
+		user: User
+	): Promise<Task> {
+		const task = await this.tasksRepository.findOne({ id, user });
 		if (!task) {
 			throw new NotFoundException(`Task with ID ${id} not found.`);
 		}
