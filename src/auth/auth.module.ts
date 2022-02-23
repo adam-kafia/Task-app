@@ -6,6 +6,7 @@ import { UsersRepository } from './users.repository';
 import { PassportModule } from '@nestjs/passport';
 import { JwtModule } from '@nestjs/jwt';
 import { JwtStrategy } from './jwt.strategy';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 
 @Module({
 	exports: [JwtStrategy, PassportModule],
@@ -13,13 +14,20 @@ import { JwtStrategy } from './jwt.strategy';
 	controllers: [AuthController],
 	imports: [
 		PassportModule.register({ defaultStrategy: 'jwt' }),
-		JwtModule.register({
-			secret: 'area51',
-			signOptions: {
-				expiresIn: 36000,
+		JwtModule.registerAsync({
+			imports: [ConfigModule],
+			inject: [ConfigService],
+			useFactory: async (configService: ConfigService) => {
+				return {
+					secret: configService.get('JWT_SECRET'),
+					signOptions: {
+						expiresIn: 36000,
+					},
+				};
 			},
 		}),
 		TypeOrmModule.forFeature([UsersRepository]),
+		ConfigModule,
 	],
 })
 export class AuthModule {}
