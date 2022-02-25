@@ -23,12 +23,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 				};
 			},
 		}),
-		// TypeOrmModule.forRoot({
-		// 	type: 'postgres',
-		// 	host:
-		// 	autoLoadEntities: true,
-		// 	synchronize: true,
-		// }),
 		AuthModule,
 	],
 })
